@@ -1,9 +1,83 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skin Tone Color Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Skin Tone Color Analyzer</h1>
+    
+    <h2>Upload Image</h2>
+    <input type="file" id="imageUpload" accept="image/*">
+    <button onclick="analyzeImage()">Analyze</button>
+    
+    <h2>Suggested Colors</h2>
+    <ul id="colorSuggestions"></ul>
+    
+    <h2>Change Skin Tone</h2>
+    <label for="l">L*:</label>
+    <input type="number" id="l" min="0" max="100" value="50">
+    <label for="a">a*:</label>
+    <input type="number" id="a" min="-128" max="127" value="0">
+    <label for="b">b*:</label>
+    <input type="number" id="b" min="-128" max="127" value="0">
+    <button onclick="changeSkinTone()">Apply</button>
+    
+    <h2>Results</h2>
+    <img id="resultImage" style="max-width: 500px;">
 
-{% block title %}Home - My Application{% endblock %}
+    <script>
+        async function analyzeImage() {
+            const fileInput = document.getElementById('imageUpload');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select an image first.');
+                return;
+            }
 
-{% block content %}
-    <h1>Hello, FastAPI!</h1>
-    <p>Welcome to your new FastAPI application, built using our world-class template foundation!</p>
-    <p>Current time: {{ current_time }}</p>
-{% endblock %}
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await axios.post('/api/analyze', formData);
+                const colors = response.data.colors;
+                const colorList = document.getElementById('colorSuggestions');
+                colorList.innerHTML = colors.map(color => `<li>${color}</li>`).join('');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while analyzing the image.');
+            }
+        }
+
+        async function changeSkinTone() {
+            const fileInput = document.getElementById('imageUpload');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select an image first.');
+                return;
+            }
+
+            const l = document.getElementById('l').value;
+            const a = document.getElementById('a').value;
+            const b = document.getElementById('b').value;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('target_lab', JSON.stringify({l: parseFloat(l), a: parseFloat(a), b: parseFloat(b)}));
+
+            try {
+                const response = await axios.post('/api/change-skin-tone', formData, {
+                    responseType: 'blob'
+                });
+                const imageUrl = URL.createObjectURL(response.data);
+                document.getElementById('resultImage').src = imageUrl;
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while changing the skin tone.');
+            }
+        }
+    </script>
+</body>
+</html>
